@@ -88,7 +88,7 @@ id2label = {idx:label for idx, label in enumerate(labels)}
 label2id = {label:idx for idx, label in enumerate(labels)} 
 #################################################################################################################################################################
 #################################################################################################################################################################
-finetuned_model ='/home/vasters/touche24/touche-Sotiris/xlm-roberta-xl-38-layers-5e-6-all-dir/checkpoint-74580'  #"/home/sotirislegkas/touche/task-1_EL_1e-5_XLM-R-large_threshold_output_dir"
+finetuned_model ='SotirisLegkas/multi-head-xlm-xl-tokens-38'  #"/home/sotirislegkas/touche/task-1_EL_1e-5_XLM-R-large_threshold_output_dir"
 tokenizer = transformers.AutoTokenizer.from_pretrained(finetuned_model)
 
 # validation_dataset, validation_text_ids, validation_sentence_ids = load_dataset('/home/vasters/touche24/touche-Sotiris/data/final_test-english', tokenizer)   #'/home/sotirislegkas/touche/data/validation'
@@ -100,10 +100,6 @@ validation_dataset=validation_dataset.to_pandas()
 # training_dataset=training_dataset.to_pandas()
 # weights=compute_positive_weights(training_dataset,labels)
 model = MultiHead_MultiLabel_XL.from_pretrained(finetuned_model, problem_type="multi_label_classification")
-
-
-model.push_to_hub('SotirisLegkas/multi-head-xlm-xl-tokens-38')
-
 
 lang_dict={ 'EN': 0,
             'EL': 1,
