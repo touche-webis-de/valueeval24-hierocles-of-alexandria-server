@@ -88,8 +88,9 @@ id2label = {idx:label for idx, label in enumerate(labels)}
 label2id = {label:idx for idx, label in enumerate(labels)} 
 #################################################################################################################################################################
 #################################################################################################################################################################
-finetuned_model ='/home/vasters/touche24/touche-Sotiris/roberta-large-38-layers-5e-6-all-dir/checkpoint-33561'  #"/home/sotirislegkas/touche/task-1_EL_1e-5_XLM-R-large_threshold_output_dir"
+finetuned_model ='/home/vasters/touche24/touche-Sotiris/xlm-roberta-xl-38-layers-5e-6-all-dir/checkpoint-74580'  #"/home/sotirislegkas/touche/task-1_EL_1e-5_XLM-R-large_threshold_output_dir"
 tokenizer = transformers.AutoTokenizer.from_pretrained(finetuned_model)
+
 # validation_dataset, validation_text_ids, validation_sentence_ids = load_dataset('/home/vasters/touche24/touche-Sotiris/data/final_test-english', tokenizer)   #'/home/sotirislegkas/touche/data/validation'
 validation_dataset, validation_text_ids, validation_sentence_ids = load_dataset('/home/vasters/touche24/touche-Sotiris/data/final_test', tokenizer)   #'/home/sotirislegkas/touche/data/validation'
 
@@ -99,6 +100,10 @@ validation_dataset=validation_dataset.to_pandas()
 # training_dataset=training_dataset.to_pandas()
 # weights=compute_positive_weights(training_dataset,labels)
 model = MultiHead_MultiLabel_XL.from_pretrained(finetuned_model, problem_type="multi_label_classification")
+
+
+model.push_to_hub('SotirisLegkas/multi-head-xlm-xl-tokens-38')
+
 
 lang_dict={ 'EN': 0,
             'EL': 1,
@@ -157,43 +162,43 @@ def thresholds(data):
     data = torch.sigmoid(torch.tensor(data))
     check = torch.zeros_like(data)
     check[:, 0] = (data[:, 0] >= 0.1).float()
-    check[:, 1] = (data[:, 1] >= 0.15).float()
-    check[:, 2] = (data[:, 2] >= 0.3).float()
-    check[:, 3] = (data[:, 3] >= 0.15).float()
+    check[:, 1] = (data[:, 1] >= 0.3).float()
+    check[:, 2] = (data[:, 2] >= 0.25).float()
+    check[:, 3] = (data[:, 3] >= 0.25).float()
     check[:, 4] = (data[:, 4] >= 0.25).float()
-    check[:, 5] = (data[:, 5] >= 0.1).float()
-    check[:, 6] = (data[:, 6] >= 0.25).float()
-    check[:, 7] = (data[:, 7] >= 0.2).float()
-    check[:, 8] = (data[:, 8] >= 0.3).float()
-    check[:, 9] = (data[:, 9] >= 0.3).float()
-    check[:, 10] = (data[:, 10] >= 0.25).float()
+    check[:, 5] = (data[:, 5] >= 0.25).float()
+    check[:, 6] = (data[:, 6] >= 0.35).float()
+    check[:, 7] = (data[:, 7] >= 0.3).float()
+    check[:, 8] = (data[:, 8] >= 0.35).float()
+    check[:, 9] = (data[:, 9] >= 0.25).float()
+    check[:, 10] = (data[:, 10] >= 0.35).float()
     check[:, 11] = (data[:, 11] >= 0.15).float()
-    check[:, 12] = (data[:, 12] >= 0.1).float()
+    check[:, 12] = (data[:, 12] >= 0.2).float()
     check[:, 13] = (data[:, 13] >= 0.25).float()
     check[:, 14] = (data[:, 14] >= 0.1).float()
-    check[:, 15] = (data[:, 15] >= 0.1).float()
-    check[:, 16] = (data[:, 16] >= 0.15).float()
-    check[:, 17] = (data[:, 17] >= 0.1).float()
-    check[:, 18] = (data[:, 18] >= 0.3).float()
-    check[:, 19] = (data[:, 19] >= 0.3).float()
-    check[:, 20] = (data[:, 20] >= 0.25).float()
-    check[:, 21] = (data[:, 21] >= 0.1).float()
-    check[:, 22] = (data[:, 22] >= 0.4).float()
-    check[:, 23] = (data[:, 23] >= 0.35).float()
+    check[:, 15] = (data[:, 15] >= 0.2).float()
+    check[:, 16] = (data[:, 16] >= 0.1).float()
+    check[:, 17] = (data[:, 17] >= 0.15).float()
+    check[:, 18] = (data[:, 18] >= 0.2).float()
+    check[:, 19] = (data[:, 19] >= 0.25).float()
+    check[:, 20] = (data[:, 20] >= 0.3).float()
+    check[:, 21] = (data[:, 21] >= 0.25).float()
+    check[:, 22] = (data[:, 22] >= 0.3).float()
+    check[:, 23] = (data[:, 23] >= 0.15).float()
     check[:, 24] = (data[:, 24] >= 0.1).float()
-    check[:, 25] = (data[:, 25] >= 0.2).float()
-    check[:, 26] = (data[:, 26] >= 0.2).float()
+    check[:, 25] = (data[:, 25] >= 0.15).float()
+    check[:, 26] = (data[:, 26] >= 0.1).float()
     check[:, 27] = (data[:, 27] >= 0.0).float()
-    check[:, 28] = (data[:, 28] >= 0.15).float()
-    check[:, 29] = (data[:, 29] >= 0.25).float()
+    check[:, 28] = (data[:, 28] >= 0.3).float()
+    check[:, 29] = (data[:, 29] >= 0.1).float()
     check[:, 30] = (data[:, 30] >= 0.15).float()
-    check[:, 31] = (data[:, 31] >= 0.1).float()
-    check[:, 32] = (data[:, 32] >= 0.25).float()
-    check[:, 33] = (data[:, 33] >= 0.25).float()
-    check[:, 34] = (data[:, 34] >= 0.2).float()
-    check[:, 35] = (data[:, 35] >= 0.15).float()
-    check[:, 36] = (data[:, 36] >= 0.1).float()
-    check[:, 37] = (data[:, 37] >= 0.1).float()
+    check[:, 31] = (data[:, 31] >= 0.4).float()
+    check[:, 32] = (data[:, 32] >= 0.15).float()
+    check[:, 33] = (data[:, 33] >= 0.2).float()
+    check[:, 34] = (data[:, 34] >= 0.1).float()
+    check[:, 35] = (data[:, 35] >= 0.1).float()
+    check[:, 36] = (data[:, 36] >= 0.25).float()
+    check[:, 37] = (data[:, 37] >= 0.2).float()
     return check
 #################################################################################################################################################################
 #################################################################################################################################################################
