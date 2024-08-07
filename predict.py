@@ -17,25 +17,8 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
-#################################################################################################################################################################
-#################################################################################################################################################################
-def compute_positive_weights(df, labels):
-    counter = Counter()
-    for label_list in df['labels']:
-        for idx, label in enumerate(label_list):
-            if label == 1:
-                counter[labels[idx]] += 1
-    total = len(df.index)
-    pos_weights = []
-    for label in labels:
-        if label in counter:  # Check if the label exists in the counter
-            pos_weights.append(total / counter[label])
-        else:
-            pos_weights.append(0)  # If the label does not exist in the counter, assign a weight of 0
-    print("Class positive weights: ", pos_weights)
-    return pos_weights
-
-
+################################################################################
+################################################################################
 def preprocess_function(examples):
     batch = tokenizer(examples["Text"], padding='max_length', max_length=512, truncation=True, )
     return batch
@@ -43,34 +26,10 @@ def preprocess_function(examples):
 
 def load_dataset(directory, tokenizer, load_labels=True):
     sentences_file_path = os.path.join(directory, "sentences.tsv")
-    labels_file_path = os.path.join(directory, "labels.tsv")
     data_frame = pandas.read_csv(sentences_file_path, encoding="utf-8", sep="\t", header=0).dropna()
     data_frame = datasets.Dataset.from_dict(data_frame)
     encoded_sentences = data_frame.map(preprocess_function, batched=True, load_from_cache_file=False)
-    data_frame = pandas.DataFrame(
-        {'Text-ID': data_frame['Text-ID'], 'Sentence-ID': data_frame['Sentence-ID'], 'Text': data_frame['Text']})
-    if load_labels and os.path.isfile(labels_file_path):
-        labels_frame = pandas.read_csv(labels_file_path, encoding="utf-8", sep="\t", header=0)
-        labels_frame = pandas.merge(data_frame, labels_frame, on=["Text-ID", "Sentence-ID"])
-        ######################################   FOR TASK 1  #########################################
-        # merged_df = pandas.DataFrame()
-        # merged_df['Text-ID'] = labels_frame['Text-ID']
-        # merged_df['Sentence-ID'] = labels_frame['Sentence-ID']
-        # merged_df['Text'] = labels_frame['Text']
-        # for col_name in labels_frame.columns:
-        #     if col_name.endswith('attained'):
-        #         prefix = col_name[:-9]
-        #         constrained_col_name = f'{prefix} constrained'
-        #         merged_df[prefix] = labels_frame[col_name] + labels_frame[constrained_col_name]
-        ##############################################################################################
-        labels_matrix = numpy.zeros((labels_frame.shape[0], len(labels)))
-        for idx, label in enumerate(labels):
-            if label in labels_frame.columns:
-                labels_matrix[:, idx] = (labels_frame[label] >= 0.5).astype(int)
-        encoded_sentences = encoded_sentences.add_column("labels", labels_matrix.tolist())
-        # encoded_sentences["labels"] = labels_matrix.tolist()
-    # encoded_sentences = datasets.Dataset.from_dict(encoded_sentences)
-    return encoded_sentences, data_frame["Text-ID"].to_list(), data_frame["Sentence-ID"].to_list()
+    return encoded_sentences
 
 
 def write_tsv_dataframe(filepath, dataframe):
@@ -80,9 +39,9 @@ def write_tsv_dataframe(filepath, dataframe):
         traceback.print_exc()
 
 
-#################################################################################################################################################################
-#########################################################   CONSTANTS   #########################################################################################
-#################################################################################################################################################################
+################################################################################
+#########################################################   CONSTANTS   ########
+################################################################################
 values = ["Self-direction: thought", "Self-direction: action", "Stimulation", "Hedonism", "Achievement",
           "Power: dominance", "Power: resources", "Face", "Security: personal", "Security: societal", "Tradition",
           "Conformity: rules", "Conformity: interpersonal", "Humility", "Benevolence: caring",
@@ -104,43 +63,36 @@ lang_dict = {'EN': 0,
 id2lang_dict = {v: k for k, v in lang_dict.items()}
 
 
-#################################################################################################################################################################
-#################################################################################################################################################################
+################################################################################
+################################################################################
+
+def get_previous_labeled_sentence_if_exists(data, idx, offset, sentence_separator):
+    text = ""
+    if data['Sentence-ID'][idx] > offset:
+        previous_idx = idx - offset
+        text = data['Text'][previous_idx]
+
+        label_indices = [j for j, label in enumerate(data['pred_labels'][previous_idx]) if label == 1]
+        if label_indices:
+            for k in label_indices:
+                text = text + f' <{id2label[k]}>'
+        else:
+            text = text + ' <NONE>'
+
+        text = text + sentence_separator
+    return text
 
 def context_data_2(data, idx, sep=' </s> '):
+    if idx == 0:
+      return data.select(range(1))
+
     data = data.to_pandas()
-    new_text = []
-    if data['Sentence-ID'][idx] == 2:
-        one_indices = [j for j, label in enumerate(data['pred_labels'][idx - 1]) if label == 1]
-        if one_indices:
-            text = data['Text'][idx - 1]
-            for k in one_indices:
-                text = text + f' <{id2label[k]}>'
-            text = text + sep + data['Text'][idx]
-        else:
-            text = data['Text'][idx - 1] + ' <NONE>' + sep + data['Text'][idx]
-        new_text.append(text)
-    elif data['Sentence-ID'][idx] > 2:
-        one_indices = [j for j, label in enumerate(data['pred_labels'][idx - 1]) if label == 1]
-        two_indices = [j for j, label in enumerate(data['pred_labels'][idx - 2]) if label == 1]
-        if two_indices:
-            text = data['Text'][idx - 2]
-            for k in two_indices:
-                text = text + f' <{id2label[k]}>'
-        else:
-            text = data['Text'][idx - 2] + ' <NONE>'
-        if one_indices:
-            text = text + sep + data['Text'][idx - 1]
-            for k in one_indices:
-                text = text + f' <{id2label[k]}>'
-            text = text + sep + data['Text'][idx]
-        else:
-            text = text + sep + data['Text'][idx - 1] + ' <NONE>' + sep + data['Text'][idx]
-        new_text.append(text)
-    else:
-        new_text.append(data['Text'][idx])
+    new_text = get_previous_labeled_sentence_if_exists(data, idx, 2, sep)
+    new_text = new_text + get_previous_labeled_sentence_if_exists(data, idx, 1, sep)
+    new_text = new_text + data['Text'][idx]
+
     data = data[['Text-ID', 'Sentence-ID', 'Text', 'language', 'pred_labels']][idx:idx + 1]
-    data['Text'] = new_text
+    data['Text'] = [ new_text ]
     data = datasets.Dataset.from_pandas(data)
     data = data.map(preprocess_function, batched=True, load_from_cache_file=False)
     return data
@@ -190,8 +142,8 @@ def thresholds(data):
     return check
 
 
-#################################################################################################################################################################
-#################################################################################################################################################################
+################################################################################
+################################################################################
 
 
 def parse_args():
@@ -209,36 +161,20 @@ if __name__ == "__main__":
     finetuned_model = '/models/SotirisLegkas/multi-head-xlm-xl-tokens-38'
     finetuned_tokenizer = '/tokenizer/SotirisLegkas/multi-head-xlm-xl-tokens-38'
     tokenizer = transformers.AutoTokenizer.from_pretrained(finetuned_tokenizer)
+    model = MultiHead_MultiLabel_XL.from_pretrained(finetuned_model, problem_type="multi_label_classification")
+    trainer = transformers.Trainer(model=model)
 
-    validation_dataset, validation_text_ids, validation_sentence_ids = load_dataset(
+    validation_dataset = load_dataset(
         args.sentences_dir, tokenizer, load_labels=False)
 
     validation_dataset = validation_dataset.to_pandas()
-    # training_dataset=training_dataset.to_pandas()
-    # weights=compute_positive_weights(training_dataset,labels)
-    model = MultiHead_MultiLabel_XL.from_pretrained(finetuned_model, problem_type="multi_label_classification")
 
     validation_dataset['language'] = validation_dataset['Text-ID'].apply(lambda x: lang_dict[x[:2]])
-    validation_dataset = datasets.Dataset.from_pandas(validation_dataset)
-    # print(validation_dataset)
-
-    trainer = transformers.Trainer(model=model)
-    predictions, label, metrics = trainer.predict(validation_dataset.select(range(1)), metric_key_prefix="predict")
-
-    check = thresholds(predictions)
-    validation_dataset = validation_dataset.to_pandas()
     validation_dataset['pred_labels'] = None
-    validation_dataset['pred_labels'][0] = check.tolist()[0]
     validation_dataset = datasets.Dataset.from_pandas(validation_dataset)
 
-    temp = context_data_2(validation_dataset, 1)
-    predictions, label, metrics = trainer.predict(temp, metric_key_prefix="predict")
-    check = thresholds(predictions)
-    validation_dataset = validation_dataset.to_pandas()
-    validation_dataset['pred_labels'][1] = check.tolist()[0]
-    validation_dataset = datasets.Dataset.from_pandas(validation_dataset)
 
-    for i in tqdm(range(2, len(validation_dataset))):
+    for i in tqdm(range(0, len(validation_dataset))):
         temp = context_data_2(validation_dataset, i)
         predictions, label, metrics = trainer.predict(temp, metric_key_prefix="predict")
         check = thresholds(predictions)
@@ -247,12 +183,10 @@ if __name__ == "__main__":
         validation_dataset = datasets.Dataset.from_pandas(validation_dataset)
 
     result = pd.DataFrame(validation_dataset['pred_labels'], columns=labels)
-    # print(result)
 
-    # result.to_dict('records')
     df_prediction = pandas.DataFrame(
         {'Text-ID': validation_dataset['Text-ID'], 'Sentence-ID': validation_dataset['Sentence-ID']})
-    # df_prediction = pd.concat([df_prediction, pd.DataFrame.from_dict(result)], axis=1)
     df_prediction = pd.concat([df_prediction, result], axis=1)
 
-    write_tsv_dataframe(args.output_file, df_prediction)  # 'EL_predictions.tsv'
+    write_tsv_dataframe(args.output_file, df_prediction)
+
