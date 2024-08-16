@@ -7,6 +7,12 @@
 docker build -f Dockerfile -t valueeval24-hierocles-of-alexandria:1.0.0 .
 
 # run
+tira-run \
+  --input-directory "$PWD/valueeval24/test"\
+  --output-directory "$PWD/output" \
+  --image valueeval24-hierocles-of-alexandria:1.0.0
+
+# or
 docker run --rm \
   -v "$PWD/valueeval24/test:/dataset" -v "$PWD/output:/output" \
   valueeval24-hierocles-of-alexandria:1.0.0
@@ -15,3 +21,14 @@ docker run --rm \
 cat output/run.tsv
 ```
 
+## Inference Server
+```bash
+PORT=8001
+
+docker run --rm -it --init \
+  -v "$PWD/logs:/workspace/logs" \
+  -p $PORT:$PORT \
+  --entrypoint tira-run-inference-server
+  valueeval24-hierocles-of-alexandria:1.0.0 \
+  --script /predict.py --port $PORT
+```

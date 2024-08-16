@@ -23,7 +23,4 @@ RUN python3 download_model_and_tokenizer.py
 # copy script files
 COPY predict.py /predict.py
 
-RUN echo '#!/bin/bash' > /run.sh && \
-echo 'python3 /predict.py --sentences-dir /dataset --output-file /output/run.tsv' >> /run.sh
-
-ENTRYPOINT [ "sh", "/run.sh" ]
+ENTRYPOINT [ "python3", "/predict.py" ]
