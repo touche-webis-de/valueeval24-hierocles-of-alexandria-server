@@ -2,3 +2,4 @@ __pycache__/
 valueeval24/
 models/
 output/
+logs/
