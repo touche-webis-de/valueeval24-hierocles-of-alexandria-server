@@ -173,7 +173,7 @@ def predict_context_based(input_list: List) -> List:
 
 def predict_zero_shot(input_list: List) -> List:
     data = datasets.Dataset.from_pandas(pd.DataFrame.from_records(input_list))\
-        .map(preprocess_function, batched=True, load_from_cache_file=False)
+        .map(preprocess_function, batched=True, load_from_cache_file=False).to(device)
     predictions, label, metrics = trainer.predict(data, metric_key_prefix="predict")
     confidence_values = thresholds_vectorized(predictions)
 
@@ -244,8 +244,9 @@ def predict(input_list: List, validate_input: bool = True) -> List:
 if __name__ == "__main__" or is_running_as_inference_server():
     finetuned_model = '/models/SotirisLegkas/multi-head-xlm-xl-tokens-38'
     finetuned_tokenizer = '/tokenizer/SotirisLegkas/multi-head-xlm-xl-tokens-38'
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
     tokenizer = transformers.AutoTokenizer.from_pretrained(finetuned_tokenizer)
-    model = MultiHead_MultiLabel_XL.from_pretrained(finetuned_model, problem_type="multi_label_classification")
+    model = MultiHead_MultiLabel_XL.from_pretrained(finetuned_model, problem_type="multi_label_classification").to(device)
     trainer = transformers.Trainer(model=model, args=TrainingArguments(finetuned_model, disable_tqdm=not ZERO_SHOT))
     logging.info(f'Running {"zero-shot" if ZERO_SHOT else "context-based"} prediction')
     

@@ -1,6 +1,7 @@
 from os import path
 from custom_models.multi_head import MultiHead_MultiLabel_XL
 from transformers import (AutoConfig, AutoTokenizer)
+import sys
 
 
 finetuned_model ='SotirisLegkas/multi-head-xlm-xl-tokens-38'
@@ -21,6 +22,7 @@ def download_model(models_dir: str = "/models"):
 
 
 if __name__ == "__main__":
-    download_model()
-    download_tokenizer()
+    base_dir = "/" if len(sys.argv) == 1 else sys.argv[1]
+    download_model(path.join(base_dir, "models"))
+    download_tokenizer(path.join(base_dir, "tokenizer"))
 
